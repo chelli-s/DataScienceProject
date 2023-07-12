@@ -1,0 +1,13 @@
+davis %>% 
+    ggplot(aes(danceability, avg_rat, size = num_rat)) +
+    geom_point(alpha = 0.5, show.legend = FALSE) +
+    scale_size(range = c(2, 20)) +
+    scale_x_log10() +
+    theme_minimal() +
+    # Here comes the gganimate specific bits
+    labs(title = 'Year: {-frame_time}', y = 'Danceability', x = 'Rating') +
+    transition_time(rel_date) +
+    ease_aes('linear') +
+    shadow_wake(0.20, wrap = FALSE)
+
+anim_save("danceability.gif")

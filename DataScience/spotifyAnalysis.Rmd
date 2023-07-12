@@ -1,0 +1,254 @@
+---
+title: "Analisi Top 5000 album nella storia"
+author: "Samir Chelli 159255"
+date: "2023-05-30"
+output:
+  ioslides_presentation:
+    logo: logo.jpg
+    css: style.css
+    incremental: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r libraries, include=FALSE}
+library(ggplot2) #install.packages("ggplot")
+library(dplyr) #install.packages("dplyr")
+library(tidyverse) #install.packages("tidyverse")
+library(stringr)   #install.packages("string")
+library(plotly) #install.packages("plotly")
+library(wordcloud2) #install.packages(")
+library(githubinstall)
+library(gganimate)
+library(animation)
+```
+
+```{r, include=FALSE}
+top5000 <- read.csv("Top5000.csv")
+str(top5000)
+summary(top5000)
+#View(Top5000)
+```
+
+## Intro {.build}
+
+Questo studio di dati andrà ad analizzare quella che è la classifica dei top 5000 album nel mondo. Utilizzeremo un dataset trovato su Kaggle, basato sulle classifiche di Spotify.<br />
+
+## Spotify {.build}
+
+Spotify è un noto servizio musicale di streaming svedese, si tratta di uno dei servizi di streaming più utilizzati dal pubblico, grazie alla sua semplicità di utilizzo e ai suoi algoritmi che permettono all'utente di scoprire nuova musica basandosi sugli ascolti precedenti, attraverso la creazione di playlist mix costruite appositamente per il consumatore.
+
+::: {style="float:left"}
+<img src="logo_spotify.png"/>
+:::
+
+::: {style="text-align:right"}
+Ad Aprile 2023 conta oltre 515 milioni di utenti, di cui oltre 200 milioni usano la versione premium.
+:::
+
+## Cosa andremo ad analizzare? {.build}
+
+Questo studio verterà l'analisi della top 5000 album più venduti e riprodotti al mondo, gli obiettivi sono:
+
+-   Confrontare i generi degli album
+
+-   Vedere quali sono gli artisti che appaiono più volte nella classifica
+
+-   Vedere quali sono le fasce di anni in cui sono presenti più album in classifica
+
+-   E tanto altro...
+
+## Quali sono gli artisti più presenti nella Top? {.build}
+
+Di seguito troviamo un grafico rappresentante i 10 aritisti presenti più volte nella classifica.
+
+```{r results='asis'}
+ #Conteggio degli artisti
+ conteggio_artisti <- table(top5000$ars_name)
+ 
+ # Seleziona i 10 artisti più frequenti
+ top_10_artisti <- head(sort(conteggio_artisti, decreasing = TRUE), 10)
+ 
+ # Crea un data frame per i dati del grafico
+ dati_grafico <- data.frame(Artista = names(top_10_artisti), Frequenza = as.numeric(top_10_artisti))
+ 
+ # Crea il grafico a barre
+ grafico <- ggplot(data = dati_grafico, aes(x = Artista, y = Frequenza)) +
+     geom_bar(stat = "identity", fill = "skyblue") +
+     xlab("Artista") +
+     ylab("Frequenza") +
+     ggtitle("Top 10 Artisti più frequenti") +
+     theme_bw() +
+     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ 
+# Visualizza il grafico
+ print(grafico)
+```
+
+## Anno più produttivo {.build}
+
+Andiamo a visualizzare un grafico che ci permetta di vedere l'andamento della produzione degli album nel corso dei decenni.
+
+```{r results='asis'}
+
+# Converte la colonna delle date in formato Date
+top5000$rel_date <- parse_date_time(top5000$rel_date, orders = c("d B Y","B Y", "Y")) 
+
+# Estrai l'anno dalla colonna delle date
+top5000$decennio <- floor(year(top5000$rel_date)/5)*5
+
+# Calcola il numero di album per decennio
+numero_album <- table(top5000$decennio)
+
+# Crea il dataframe per il grafico
+dati_grafico2 <- data.frame(Anno = as.numeric(names(numero_album)), Album = as.numeric(numero_album))
+
+# Crea il grafico lineare
+grafico2 <- ggplot(dati_grafico2, aes(x = Anno, y = Album)) +
+    geom_line(color = "blue") +
+    geom_point(color = "black") +
+    xlab("Anno") +
+    ylab("Numero di album") +
+    ggtitle("Produttività degli album per decennio") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Visualizza il grafico
+print(grafico2)
+
+```
+
+## Grafico dei generi {.build}
+
+```{r, results = 'asis'}
+# Utilizza la funzione strsplit() per suddividere i generi separati da virgola
+generi_lista <- strsplit(top5000$gens, ",")
+
+# "Srotola" la lista di generi in un vettore
+generi_vettore <- unlist(generi_lista)
+
+# Tolgo spazi bianchi iniziali o finali
+generi_vettore <- trimws(generi_vettore)
+
+# Conta la frequenza di ciascun genere
+conteggio_generi <- table(generi_vettore)
+
+# Ordina il conteggio dei generi in ordine decrescente
+conteggio_generi <- sort(conteggio_generi, decreasing = TRUE)
+
+# Imposta il numero di generi da visualizzare
+num_generi_visualizzati <- 10
+
+# Seleziona i primi N generi più utilizzati
+top_generi <- conteggio_generi[1:num_generi_visualizzati]
+
+# Calcola le percentuali dei generi
+percentuali_generi <- round(prop.table(top_generi) * 100, 1)
+
+# Crea il grafico a torta dei generi più utilizzati
+pie(top_generi, labels = names(top_generi), main = "Generi musicali più utilizzati", cex.main = 2)
+
+# Posiziona la legenda in un angolo appropriato del grafico
+legend("bottomleft", legend = paste(names(top_generi), "(", percentuali_generi, "%)", sep = ""), fill = rainbow(length(top_generi)), cex = 0.5)
+```
+
+## Durata media degli Album nei Decenni {.build}
+
+```{r, results = 'asis'}
+
+top5000$decennio <- floor(year(top5000$rel_date)/10)*10
+
+top5000$duration_ms <- top5000$duration_ms/60000
+
+media_durata_decennio <- aggregate(duration_ms ~ decennio, data = top5000, FUN = mean)
+
+# Crea il grafico a linee
+grafico_durata <- ggplot(media_durata_decennio, aes(x = decennio, y = duration_ms)) +
+    geom_line(color = "orange") +
+    geom_point(color = "darkred") +
+    xlab("Decennio") +
+    ylab("Durata Media (min)") +
+    ggtitle("Durata Media degli Album per Decennio")
+grafico_durata
+```
+
+## Descrizioni più usate {.build}
+
+```{r, results = 'asis'}
+descrizione_lista <- strsplit(top5000$descs, ",")
+descrizione_vettore <- unlist(descrizione_lista)
+descrizione_vettore <- trimws(descrizione_vettore)
+frequenza_desc <- table(descrizione_vettore)
+wordcloud2(frequenza_desc, size = 0.5, shape = 'triangle', color = 'random-light', background = "black")
+```
+
+## Apprezzamento del pubblico {.build}
+
+Andiamo a vedere come è variato il rating degli album nel tempo.
+
+```{r results='asis'}
+# Crea il grafico base
+
+p <- ggplot(data = top5000, aes(x = rel_date, y = avg_rat)) +
+    geom_point(shape = 4, color = "red", size = 3) +
+    shadow_mark(color = "black", size = 3, alpha = 0.5) +
+    xlab("Anno") +
+    ylab("Rating") +
+    labs(title = 'Rating medio nel corso degli anni') +
+    transition_time(rel_date)
+
+animate(p, renderer = gifski_renderer(loop = FALSE))
+anim_save("rating.gif")
+```
+
+# Miles Davis
+
+## Miles Davis viaggia nei sottogeneri del jazz
+
+```{r results='asis'}
+davis  <- top5000 %>%
+     filter(ars_name == "Miles Davis")
+
+# Utilizza la funzione strsplit() per suddividere i generi separati da virgola
+generi_lista <- strsplit(davis$gens, ",")
+# "Srotola" la lista di generi in un vettore
+generi_vettore <- unlist(generi_lista)
+# Tolgo spazi bianchi iniziali o finali
+generi_vettore <- trimws(generi_vettore)
+# Conta la frequenza di ciascun genere
+conteggio_generi <- table(generi_vettore)
+wordcloud2(conteggio_generi, size = 0.5, shape = 'diamond', color = 'random-light', background = "black")
+```
+
+## Andiamo a vedere le caratteristiche dei suoi album
+
+Quanto sono ballabili?
+![](danceability.gif)
+
+## Andiamo a vedere le caratteristiche dei suoi album
+
+Si possono eseguire dal vivo?
+
+![](acousticness.gif)
+
+## Andiamo a vedere le caratteristiche dei suoi album
+
+Quanta energia trasmettono?
+
+![](energy.gif)
+
+# Conclusioni
+
+## Per gli album
+Abbiamo capito che il genere più ascoltato è il cantautorato, che gli anni più produttivi sono stati gli anni '70 e che la maggior parte dei cantanti sono uomini,  
+L'artista più presente nella top è Miles Davis, con ben 17 album.
+
+## Per Miles Davis
+La nostra analisi ha fatto emergere le sfumature della musica di Davis, che spaziava nei sottogeneri del jazz, andando a creare per la maggiorparte album orecchiabili e dinamici, predisposti per il ballo, non sempre per suonare dal vivo.
+
+## Fonti 
+Il dataset da cui ho attinto le mie informazioni si può trovare su [kaggle](https://www.kaggle.com/datasets/lucascantu/top-5000-albums-of-all-time-spotify-features): https://www.kaggle.com/datasets/lucascantu/top-5000-albums-of-all-time-spotify-features

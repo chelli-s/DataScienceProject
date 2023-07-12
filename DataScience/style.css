@@ -1,0 +1,10 @@
+slides > slide {
+  overflow-y: auto !important;
+}
+
+slides > slide:not(.nobackground):after {
+  content: '';
+}
+img{width: 100%}
+Footer
+© 2022 GitHub, Inc.
